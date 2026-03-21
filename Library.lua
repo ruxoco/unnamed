@@ -6484,11 +6484,13 @@ do
         })
 
         local SideColor = Library:Create("Frame", {
-            AnchorPoint = (Side == "left" or isCentered) and Vector2.new(0, 0) or Vector2.new(1, 0);
-            Position = (Side == "left" or isCentered) and UDim2.new(0, -1, 0, -1) or UDim2.new(1, -1, 0, -1);
+            AnchorPoint = isCentered and (Side == "top" and Vector2.new(0, 0) or Vector2.new(0, 1))
+                or ((Side == "left" or isCentered) and Vector2.new(0, 0) or Vector2.new(1, 0));
+            Position = isCentered and (Side == "top" and UDim2.new(0, -1, 0, -1) or UDim2.new(0, -1, 1, 1))
+                or ((Side == "left") and UDim2.new(0, -1, 0, -1) or UDim2.new(1, -1, 0, -1));
             BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
-            Size = UDim2.new(0, 3, 1, 2);
+            Size = isCentered and UDim2.new(1, 2, 0, 3) or UDim2.new(0, 3, 1, 2);
             ZIndex = 11004;
             Parent = NotifyOuter;
         })
