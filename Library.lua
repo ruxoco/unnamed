@@ -4578,7 +4578,7 @@ do
         Info.Default  = Info.Default  or 0
         Info.Rounding = Info.Rounding or 0
 
-        local Parent  = self
+        local Parent    = self
         local Container = Parent.Container
 
         local SubSlider = {
@@ -4593,7 +4593,6 @@ do
             Callback = Info.Callback or function() end;
         }
 
-        -- найти последний SliderOuter в контейнере и поставить рядом
         local lastOuter
         for _, child in pairs(Container:GetChildren()) do
             if child:IsA("Frame") and child.Size == UDim2.new(1, -4, 0, 13) then
@@ -4714,7 +4713,6 @@ do
             Library:AttemptSave()
         end)
 
-        -- сжимаем родительский слайдер чтобы влез sub
         if lastOuter then
             lastOuter.Size = UDim2.new(0.5, -3, 0, 13)
         end
@@ -4728,12 +4726,8 @@ do
         return SubSlider
     end
 
-    
     function BaseGroupboxFuncs:AddDropdown(Idx, Info)
         Info.ReturnInstanceInstead = if typeof(Info.ReturnInstanceInstead) == "boolean" then Info.ReturnInstanceInstead else false
-
-        if Info.SpecialType == "Player" then
-            Info.ExcludeLocalPlayer = if typeof(Info.ExcludeLocalPlayer) == "boolean" then Info.ExcludeLocalPlayer else false
 
             Info.Values = GetPlayers(Info.ExcludeLocalPlayer, Info.ReturnInstanceInstead)
             Info.AllowNull = true
