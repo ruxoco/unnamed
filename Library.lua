@@ -4570,7 +4570,163 @@ do
         return Slider
     end
 
-    function BaseGroupboxFuncs:AddDropdown(Idx, Info)
+    function BaseGroupboxFuncs:AddSubSlider(Idx, Info)
+        Info.Compact  = true
+        Info.Text     = Info.Text or ""
+        Info.Min      = Info.Min      or 0
+        Info.Max      = Info.Max      or 100
+        Info.Default  = Info.Default  or 0
+        Info.Rounding = Info.Rounding or 0
+
+        local Parent  = self
+        local Container = Parent.Container
+
+        local SubSlider = {
+            Value    = Info.Default;
+            Min      = Info.Min;
+            Max      = Info.Max;
+            Rounding = Info.Rounding;
+            MaxSize  = 110;
+            Type     = "Slider";
+            Prefix   = typeof(Info.Prefix) == "string" and Info.Prefix or "";
+            Suffix   = typeof(Info.Suffix) == "string" and Info.Suffix or "";
+            Callback = Info.Callback or function() end;
+        }
+
+        -- найти последний SliderOuter в контейнере и поставить рядом
+        local lastOuter
+        for _, child in pairs(Container:GetChildren()) do
+            if child:IsA("Frame") and child.Size == UDim2.new(1, -4, 0, 13) then
+                lastOuter = child
+            end
+        end
+
+        local SubOuter = Library:Create("Frame", {
+            BackgroundColor3 = Color3.new(0, 0, 0);
+            BorderColor3     = Color3.new(0, 0, 0);
+            Size             = UDim2.new(0.5, -5, 0, 13);
+            Position         = UDim2.new(0.5, 3, 0, 0);
+            ZIndex           = 5;
+            Parent           = lastOuter or Container;
+        })
+
+        SubOuter:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+            SubSlider.MaxSize = SubOuter.AbsoluteSize.X - 2
+        end)
+
+        Library:AddToRegistry(SubOuter, { BorderColor3 = "Black" })
+
+        local SubInner = Library:Create("Frame", {
+            BackgroundColor3 = Library.MainColor;
+            BorderColor3     = Library.OutlineColor;
+            BorderMode       = Enum.BorderMode.Inset;
+            Size             = UDim2.new(1, 0, 1, 0);
+            ZIndex           = 6;
+            Parent           = SubOuter;
+        })
+
+        Library:AddToRegistry(SubInner, {
+            BackgroundColor3 = "MainColor";
+            BorderColor3     = "OutlineColor";
+        })
+
+        local SubFill = Library:Create("Frame", {
+            BackgroundColor3 = Library.AccentColor;
+            BorderColor3     = Library.AccentColorDark;
+            Size             = UDim2.new(0, 0, 1, 0);
+            ZIndex           = 7;
+            Parent           = SubInner;
+        })
+
+        Library:AddToRegistry(SubFill, {
+            BackgroundColor3 = "AccentColor";
+            BorderColor3     = "AccentColorDark";
+        })
+
+        local SubHide = Library:Create("Frame", {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel  = 0;
+            Position         = UDim2.new(1, 0, 0, 0);
+            Size             = UDim2.new(0, 1, 1, 0);
+            ZIndex           = 8;
+            Parent           = SubFill;
+        })
+
+        Library:AddToRegistry(SubHide, { BackgroundColor3 = "AccentColor" })
+
+        local SubLabel = Library:CreateLabel({
+            Size     = UDim2.new(1, 0, 1, 0);
+            TextSize = 14;
+            Text     = "";
+            ZIndex   = 9;
+            Parent   = SubInner;
+        })
+
+        Library:OnHighlight(SubOuter, SubOuter,
+            { BorderColor3 = "AccentColor" },
+            { BorderColor3 = "Black" }
+        )
+
+        function SubSlider:GetValueFromXScale(X)
+            local v = Library:MapValue(X, 0, 1, SubSlider.Min, SubSlider.Max)
+            return math.clamp(math.round(v / (10^-SubSlider.Rounding)) * (10^-SubSlider.Rounding), SubSlider.Min, SubSlider.Max)
+        end
+
+        function SubSlider:Display()
+            local scale = Library:MapValue(SubSlider.Value, SubSlider.Min, SubSlider.Max, 0, 1)
+            SubFill.Size = UDim2.new(0, math.clamp(scale * SubSlider.MaxSize, 0, SubSlider.MaxSize), 1, 0)
+            local disp = (SubSlider.Prefix ~= "" and SubSlider.Prefix .. " " or "")
+                .. tostring(SubSlider.Value)
+                .. (SubSlider.Suffix ~= "" and " " .. SubSlider.Suffix or "")
+            SubLabel.Text = disp
+        end
+
+        function SubSlider:SetValue(v)
+            SubSlider.Value = math.clamp(tonumber(v) or SubSlider.Min, SubSlider.Min, SubSlider.Max)
+            SubSlider:Display()
+            Library:SafeCallback(SubSlider.Callback, SubSlider.Value)
+        end
+
+        function SubSlider:OnChanged(fn)
+            SubSlider.Changed = fn
+            fn(SubSlider.Value)
+            return SubSlider
+        end
+
+        SubInner.InputBegan:Connect(function(Input)
+            if Input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+            local mPos = Mouse.X
+            local gPos = SubFill.AbsoluteSize.X
+            local Diff = mPos - (SubFill.AbsolutePosition.X + gPos)
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                local nXOffset = math.clamp(gPos + (Mouse.X - mPos) + Diff, 0, SubSlider.MaxSize)
+                local nXScale  = Library:MapValue(nXOffset, 0, SubSlider.MaxSize, 0, 1)
+                local nValue   = SubSlider:GetValueFromXScale(nXScale)
+                local old      = SubSlider.Value
+                SubSlider.Value = nValue
+                SubSlider:Display()
+                if nValue ~= old then
+                    Library:SafeCallback(SubSlider.Callback, nValue)
+                    Library:SafeCallback(SubSlider.Changed, nValue)
+                end
+                RunService.RenderStepped:Wait()
+            end
+            Library:AttemptSave()
+        end)
+
+        -- сжимаем родительский слайдер чтобы влез sub
+        if lastOuter then
+            lastOuter.Size = UDim2.new(0.5, -3, 0, 13)
+        end
+
+        SubSlider:Display()
+        SubSlider.Default = SubSlider.Value
+        Options[Idx] = SubSlider
+        table.insert(Parent.Elements, SubSlider)
+        Parent:Resize()
+
+        return SubSlider
+    end
         Info.ReturnInstanceInstead = if typeof(Info.ReturnInstanceInstead) == "boolean" then Info.ReturnInstanceInstead else false
 
         if Info.SpecialType == "Player" then
