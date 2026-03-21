@@ -4727,6 +4727,9 @@ do
 
         return SubSlider
     end
+
+    
+    function BaseGroupboxFuncs:AddDropdown(Idx, Info)
         Info.ReturnInstanceInstead = if typeof(Info.ReturnInstanceInstead) == "boolean" then Info.ReturnInstanceInstead else false
 
         if Info.SpecialType == "Player" then
